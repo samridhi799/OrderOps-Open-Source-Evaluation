@@ -100,3 +100,52 @@ def reconcile_orders(internal: list[dict], provider: list[dict]) -> dict:
                 report["matched"].append(key)
 
     return report
+
+
+def export_awaiting_refund_csv(orders: list[dict], filepath: str | None = None) -> str:
+    """Export an awaiting-refund CSV report for orders with pending refunds.
+
+    An order is awaiting refund if refund_due_paise > refunded_paise.
+    Returns the CSV content string and optionally writes it to filepath.
+    """
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerow([
+        "order_id",
+        "status",
+        "payment_status",
+        "total_paise",
+        "refund_due_paise",
+        "refunded_paise",
+        "outstanding_refund_paise",
+    ])
+
+    for order in sorted(
+        orders or [],
+        key=lambda o: str(o.get("order_id", "")) if isinstance(o, dict) else "",
+    ):
+        if not isinstance(order, dict):
+            continue
+        due = order.get("refund_due_paise", 0)
+        refunded = order.get("refunded_paise", 0)
+        outstanding = due - refunded
+        if outstanding > 0:
+            writer.writerow([
+                order.get("order_id", ""),
+                order.get("status", ""),
+                order.get("payment_status", ""),
+                order.get("total_paise", order.get("amount_paise", 0)),
+                due,
+                refunded,
+                outstanding,
+            ])
+
+    content = output.getvalue()
+    if filepath:
+        with open(filepath, "w", encoding="utf-8", newline="") as f:
+            f.write(content)
+    return content
+

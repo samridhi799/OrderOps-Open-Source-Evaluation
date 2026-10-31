@@ -1,7 +1,7 @@
 """Comprehensive edge-case and regression tests for OrderOps."""
 import pytest
 from models import new_order
-from service import apply_order_event, reconcile_orders
+from service import apply_order_event, export_awaiting_refund_csv, reconcile_orders
 
 
 def make_event(event_id, kind, **extra):
@@ -133,3 +133,64 @@ def test_malformed_and_missing_field_inputs():
     assert report["matched"] == []
     assert report["missing_from_provider"] == []
     assert report["missing_from_internal"] == []
+
+
+def test_export_awaiting_refund_csv_filters_and_formats(tmp_path):
+    """export_awaiting_refund_csv must only include orders with outstanding refund due and format properly."""
+    orders = [
+        # Order 1: Awaiting full refund (5000 due, 0 refunded)
+        {
+            "order_id": "ORD-AWAIT-1",
+            "status": "CANCELLED",
+            "payment_status": "PAID",
+            "total_paise": 5000,
+            "refund_due_paise": 5000,
+            "refunded_paise": 0,
+        },
+        # Order 2: Fully refunded (3000 due, 3000 refunded -> outstanding 0, exclude)
+        {
+            "order_id": "ORD-DONE-2",
+            "status": "CANCELLED",
+            "payment_status": "REFUNDED",
+            "total_paise": 3000,
+            "refund_due_paise": 3000,
+            "refunded_paise": 3000,
+        },
+        # Order 3: Partially refunded (8000 due, 3000 refunded -> outstanding 5000)
+        {
+            "order_id": "ORD-PARTIAL-3",
+            "status": "REJECTED",
+            "payment_status": "PAID",
+            "total_paise": 8000,
+            "refund_due_paise": 8000,
+            "refunded_paise": 3000,
+        },
+        # Order 4: Normal delivered order (no refund due -> exclude)
+        {
+            "order_id": "ORD-DELV-4",
+            "status": "DELIVERED",
+            "payment_status": "PAID",
+            "total_paise": 4500,
+            "refund_due_paise": 0,
+            "refunded_paise": 0,
+        },
+    ]
+
+    csv_output = export_awaiting_refund_csv(orders)
+    lines = [line.strip() for line in csv_output.strip().split("\n")]
+    assert lines[0] == "order_id,status,payment_status,total_paise,refund_due_paise,refunded_paise,outstanding_refund_paise"
+    # Should include ORD-AWAIT-1 and ORD-PARTIAL-3, sorted
+    assert len(lines) == 3
+    assert lines[1] == "ORD-AWAIT-1,CANCELLED,PAID,5000,5000,0,5000"
+    assert lines[2] == "ORD-PARTIAL-3,REJECTED,PAID,8000,8000,3000,5000"
+
+    # Test file writing
+    filepath = tmp_path / "awaiting_refunds.csv"
+    export_awaiting_refund_csv(orders, filepath=str(filepath))
+    assert filepath.exists()
+    assert filepath.read_text(encoding="utf-8") == csv_output
+
+    # Empty and malformed lists
+    assert export_awaiting_refund_csv([]) == "order_id,status,payment_status,total_paise,refund_due_paise,refunded_paise,outstanding_refund_paise\n"
+    assert export_awaiting_refund_csv([None, "invalid"]) == "order_id,status,payment_status,total_paise,refund_due_paise,refunded_paise,outstanding_refund_paise\n"
+

@@ -5,7 +5,7 @@ Complete this file with test evidence from your own work. Include at least five 
 ## Test command and environment
 - Python version: `Python 3.14.4`
 - Command run: `.venv/bin/pytest -q`
-- Actual test summary: **219 passed in 0.05s** (baseline: 212 tests; regression: 7 tests)
+- Actual test summary: **220 passed in 0.07s** (baseline: 212 tests; regression & stretch: 8 tests)
 
 ## Edge-case evidence
 
@@ -24,6 +24,7 @@ Complete this file with test evidence from your own work. Include at least five 
 - **Partial Refund Bounds**: Prevented cumulative refunds exceeding refundable due. Protected by `test_multi_step_partial_refund_accumulation` and `test_refunds_cannot_exceed_due`.
 - **Late Payment Refund Due**: Initialized `refund_due_paise` on `payment_confirmed` for already rejected/cancelled orders. Protected by `test_late_payment_confirmed_after_rejection_or_cancellation`.
 - **Reconciliation Independence**: Disentangled status and amount checks. Protected by `test_reconciliation_status_mismatch_matrix` and `test_simultaneous_amount_and_status_mismatch_reconciliation`.
+- **Awaiting-Refund CSV Export (Stretch Goal)**: Verified pending refund filtering, format compliance, and file writing in `test_export_awaiting_refund_csv_filters_and_formats`.
 
 ## Remaining failures or limitations
-- None. All 219 tests pass cleanly without errors or warnings.
+- None. All 220 tests pass cleanly without errors or warnings.

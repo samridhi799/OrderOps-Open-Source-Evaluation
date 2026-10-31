@@ -62,6 +62,7 @@ For each major defect, describe the observed symptom, the hypothesis you tested,
   - Updated `service.py` to preserve pure function behavior (deepcopy on inputs, no side effects).
   - Added type guards against boolean-as-int coercion.
   - Handled late payments on cancelled/rejected orders by initializing `refund_due_paise = total_paise`.
+  - Implemented the optional stretch feature: `export_awaiting_refund_csv(orders, filepath)` to generate operational CSV reports of orders with pending refund balances.
 - Alternatives considered and why rejected:
   - Class-based state machine / Pydantic models: Rejected to maintain project structure, avoid heavy external dependencies, and honor existing function signatures and dict schemas.
   - Raising exceptions on invalid events: Rejected because requirements state malformed/invalid events should not corrupt state or crash the pipeline.
@@ -71,7 +72,7 @@ For each major defect, describe the observed symptom, the hypothesis you tested,
 
 ## 5. Verification
 - Tests added or changed:
-  - Created `tests/test_edge_cases.py` with 7 dedicated regression tests:
+  - Created `tests/test_edge_cases.py` with 8 dedicated regression and stretch tests:
     - `test_cancellation_after_dispatch_and_delivery_is_ignored`
     - `test_late_payment_confirmed_after_rejection_or_cancellation`
     - `test_refund_amount_type_safety_and_coercion_prevention`
@@ -79,8 +80,9 @@ For each major defect, describe the observed symptom, the hypothesis you tested,
     - `test_simultaneous_amount_and_status_mismatch_reconciliation`
     - `test_idempotency_ignores_conflicting_replay_payload`
     - `test_malformed_and_missing_field_inputs`
+    - `test_export_awaiting_refund_csv_filters_and_formats`
 - Commands run and actual results:
-  - `.venv/bin/pytest -q`: **219 passed in 0.05s** (100% pass rate).
+  - `.venv/bin/pytest -q`: **220 passed in 0.07s** (100% pass rate).
   - `.venv/bin/python main.py`:
     ```text
     matched: ['ORD-101']
@@ -95,5 +97,6 @@ For each major defect, describe the observed symptom, the hypothesis you tested,
   - Float, boolean, string, negative, and zero refund amounts are ignored.
   - Cumulative partial refunds cannot exceed outstanding due amount.
   - Dual status and amount discrepancies reported independently.
+  - Awaiting-refund CSV export correctly filters orders with positive pending balances and outputs standard RFC 4180 CSV.
 - Remaining failures or known limitations:
   - None. All visible tests and added edge cases pass.

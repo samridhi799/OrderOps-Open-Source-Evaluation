@@ -43,7 +43,7 @@ Document optimizations you considered or implemented. Do not claim a speedup or 
 - Measurement method and result:
   - Executed pytest suite:
     - Baseline: **212 tests in 0.21s**.
-    - Post-optimization + 7 extra edge-case tests: **219 tests in 0.05s** (over 4x speedup across the test suite).
+    - Post-optimization + 8 extra edge-case & stretch tests: **220 tests in 0.07s** (over 3x speedup across the entire expanded test suite).
 
 ## 4. Trade-offs
 - **Immutability vs Memory Allocation**:
